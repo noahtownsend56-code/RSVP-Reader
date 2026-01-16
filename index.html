@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RSVP Reader MVP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    textarea {
+      width: 90%;
+      max-width: 600px;
+      height: 120px;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    #reader {
+      margin: 40px 0;
+      font-size: 48px;
+      font-weight: bold;
+      min-height: 60px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 16px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    input[type="range"] {
+      width: 150px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>RSVP Reader</h1>
+
+  <textarea id="textInput" placeholder="Paste text here..."></textarea>
+
+  <div class="controls">
+    <button id="startBtn">Start</button>
+    <button id="pauseBtn">Pause</button>
+    <label>
+      Speed (WPM):
+      <input type="range" id="speed" min="80" max="600" value="200" />
+      <span id="speedValue">200</span>
+    </label>
+  </div>
+
+  <div id="reader"></div>
+
+  <script>
+    const textInput = document.getElementById('textInput');
+    const reader = document.getElementById('reader');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const speedInput = document.getElementById('speed');
+    const speedValue = document.getElementById('speedValue');
+
+    let words = [];
+    let index = 0;
+    let interval = null;
+
+    speedInput.addEventListener('input', () => {
+      speedValue.textContent = speedInput.value;
+    });
+
+    function startReading() {
+      const text = textInput.value.trim();
+      if (!text) return;
+
+      words = text.split(/\s+/);
+      index = 0;
+
+      const wpm = Number(speedInput.value);
+      const delay = 60000 / wpm;
+
+      clearInterval(interval);
+
+      interval = setInterval(() => {
+        if (index >= words.length) {
+          clearInterval(interval);
+          return;
+        }
+        reader.textContent = words[index];
+        index++;
+      }, delay);
+    }
+
+    function pauseReading() {
+      clearInterval(interval);
+    }
+
+    startBtn.addEventListener('click', startReading);
+    pauseBtn.addEventListener('click', pauseReading);
+  </script>
+
+</body>
+</html>
