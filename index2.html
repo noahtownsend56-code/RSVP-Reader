@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RSVP Reader MVP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-color: #FFF8E7;
+      --text-color: #333333;
+      --reader-bg: #FFEBD6;
+      --highlight-color: #FF8C42;
+      --context-color: rgba(0,0,0,0.1);
+      --button-bg: #FFA75D;
+      --orp-color: #FF3333;
+      --button-active-bg: #FF5722;
+    }
+
+    body {
+      font-family: 'Lexend', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    #menuBtn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--highlight-color);
+    }
+
+    #menuContent {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background-color: var(--reader-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      display: none;
+      flex-direction: column;
+      min-width: 140px;
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    .menuItem {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .menuItem:last-child { border-bottom: none; }
+    .menuItem:hover { background-color: var(--highlight-color); color: #fff; }
+
+    #sectionTitle { font-size: 1.5rem; margin-top: 20px; margin-bottom: 10px; }
+
+    #readerContainer {
+      position: relative;
+      width: 90%;
+      max-width: 600px;
+      min-height: 180px;
+      margin: 20px 0;
+      background-color: var(--reader-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    #reader {
+      font-size: 48px;
+      font-weight: bold;
+      color: var(--highlight-color);
+      text-align: center;
+      transition: opacity 0.3s ease, transform 0.2s ease;
+    }
+
+    .context {
+      font-size: 0.5em;
+      color: var(--context-color);
+      margin: 5px 0;
+      user-select: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .context.show { opacity: 1; }
+
+    textarea {
+      width: 90%;
+      max-width: 600px;
+      height: 120px;
+      margin-bottom: 15px;
+      font-size: 16px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--highlight-color);
+      background-color: #FFF2E0;
+      color: var(--text-color);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    button, select {
+      padding: 12px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 8px;
+      border: none;
+      background-color: var(--button-bg);
+      color: #fff;
+      transition: transform 0.1s ease, background-color 0.2s ease;
+    }
+
+    button.active { background-color: var(--button-active-bg); }
+    button:hover, select:hover { transform: scale(1.05); background-color: var(--highlight-color); }
+    input[type="range"] { width: 150px; }
+    label { font-size: 16px; }
+    #progressBarContainer { width: 90%; max-width: 600px; height: 10px; background-color: rgba(0,0,0,0.1); border-radius: 5px; margin: 10px 0; overflow: hidden; }
+    #progressBar { height: 100%; width: 0%; background-color: var(--highlight-color); transition: width 0.2s ease; }
+
+    #comingSoon { display: none; font-size: 1.2rem; margin-top: 20px; }
+
+    @media (max-width: 500px) {
+      #reader { font-size: 36px; }
+      .context { font-size: 0.4em; }
+      button, select { font-size: 14px; padding: 10px 16px; }
+      textarea { height: 100px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <button id="menuBtn">☰</button>
+  <div id="menuContent">
+    <div class="menuItem" data-section="read">Read</div>
+    <div class="menuItem" data-section="daily">Daily Games</div>
+    <div class="menuItem" data-section="pro">Pro Reader</div>
+    <div class="menuItem" data-section="settings">Settings</div>
+  </div>
+
+  <div id="sectionTitle">Read</div>
+
+  <div id="readerContainer">
+    <span class="context" id="prevWord">&nbsp;</span>
+    <span id="reader">Your word appears here</span>
+    <span class="context" id="nextWord">&nbsp;</span>
+  </div>
+
+  <div id="comingSoon">Coming Soon...</div>
+
+  <div id="progressBarContainer">
+    <div id="progressBar"></div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">▶</button>
+    <button id="pauseBtn">⏸</button>
+    <button id="prevWordBtn">⏪</button>
+    <button id="nextWordBtn">⏩</button>
+    <button id="restartSentenceBtn">⏮</button>
+    <button id="forwardSentenceBtn">⏭</button>
+    <button id="nightModeBtn">Toggle Night Mode</button>
+    <button id="ambientBtn">🎵 Ambient</button>
+    <button id="orpBtn">ORP Highlight</button>
+    <label>Speed (WPM): <input type="range" id="speed" min="80" max="600" value="200" /> <span id="speedValue">200</span></label>
+    <label>Profile: <select id="profileSelect"><option value="dyslexia">Dyslexia-Friendly</option><option value="standard">Standard</option><option value="speed">Speed Reader</option></select></label>
+  </div>
+
+  <textarea id="textInput" placeholder="Paste text here..."></textarea>
+
+  <script>
+    const textInput=document.getElementById('textInput');
+    const reader=document.getElementById('reader');
+    const prevWord=document.getElementById('prevWord');
+    const nextWord=document.getElementById('nextWord');
+    const startBtn=document.getElementById('startBtn');
+    const pauseBtn=document.getElementById('pauseBtn');
+    const restartSentenceBtn=document.getElementById('restartSentenceBtn');
+    const prevWordBtn=document.getElementById('prevWordBtn');
+    const nextWordBtn=document.getElementById('nextWordBtn');
+    const forwardSentenceBtn=document.getElementById('forwardSentenceBtn');
+    const speedInput=document.getElementById('speed');
+    const speedValue=document.getElementById('speedValue');
+    const profileSelect=document.getElementById('profileSelect');
+    const nightModeBtn=document.getElementById('nightModeBtn');
+    const ambientBtn=document.getElementById('ambientBtn');
+    const orpBtn=document.getElementById('orpBtn');
+    const progressBar=document.getElementById('progressBar');
+    const menuBtn=document.getElementById('menuBtn');
+    const menuContent=document.getElementById('menuContent');
+    const menuItems=document.querySelectorAll('.menuItem');
+    const sectionTitle=document.getElementById('sectionTitle');
+    const readerContainer=document.getElementById('readerContainer');
+    const comingSoon=document.getElementById('comingSoon');
+
+    let words=[], index=0, timeoutId=null;
+    let ambientPlaying=false, orpActive=false, nightActive=false;
+    const ambientAudio=new Audio('sounds/rain.mp3'); ambientAudio.loop=true; ambientAudio.volume=0.2;
+    const punctuationAudio=new Audio('sounds/ding.mp3'); punctuationAudio.volume=0.4;
+
+    menuBtn.addEventListener('click',()=>{ menuContent.style.display=(menuContent.style.display==='flex')?'none':'flex'; });
+    menuItems.forEach(item=>{ item.addEventListener('click',()=>{
+      const section=item.dataset.section;
+      sectionTitle.textContent=item.textContent;
+      if(section==='read'){ readerContainer.style.display='flex'; comingSoon.style.display='none'; }
+      else { readerContainer.style.display='none'; comingSoon.style.display='flex'; }
+      menuContent.style.display='none';
+    }); });
+
+    speedInput.addEventListener('input',()=>{ speedValue.textContent=speedInput.value; });
+
+    function getWordDelay(word){
+      const base=60000/Number(speedInput.value);
+      let multiplier=1;
+      if(/[.!?]/.test(word)) multiplier=3;
+      else if(/[,;]/.test(word)) multiplier=1.5;
+      else if(/:/.test(word)) multiplier=2;
+      const extra=Math.min(word.length*20,200);
+      return base*multiplier+extra;
+    }
+
+    function showWord(currentIndex,animateContext=true){
+      const currentWord=words[currentIndex]||'';
+      if(animateContext){
+        prevWord.style.opacity=0; nextWord.style.opacity=0;
+        setTimeout(()=>{
+          prevWord.textContent=words[currentIndex-1]||'';
+          nextWord.textContent=words[currentIndex+1]||'';
+          prevWord.style.opacity=0.15; nextWord.style.opacity=0.15;
+        },50);
+      } else {
+        prevWord.textContent=words[currentIndex-1]||'';
+        nextWord.textContent=words[currentIndex+1]||'';
+        prevWord.style.opacity=0.15; nextWord.style.opacity=0.15;
+      }
+      reader.style.opacity=0;
+      setTimeout(()=>{
+        if(orpActive && currentWord.length>1){
+          const orpIndex=Math.floor(currentWord.length/3);
+          reader.innerHTML=currentWord.slice(0,orpIndex)+'<span style="color:'+getComputedStyle(document.documentElement).getPropertyValue('--orp-color')+'">'+currentWord[orpIndex]+'</span>'+currentWord.slice(orpIndex+1);
+        } else { reader.textContent=currentWord; }
+        if(currentIndex>0 && /[.!?]/.test(words[currentIndex-1])){
+          reader.style.transform='scale(1.1)';
+          setTimeout(()=>{ reader.style.transform='scale(1)'; },200);
+          try{ punctuationAudio.play(); }catch(e){}
+        }
+        reader.style.opacity=1;
+      },50);
+      if(words.length) progressBar.style.width=((currentIndex+1)/words.length*100)+'%';
+    }
+
+    function startReading(){
+      if(!words.length){
+        const text=textInput.value.trim();
+        if(!text) return;
+        words=text.split(/\s+/); index=0;
+      }
+      if(timeoutId) return;
+      function showNextWord(){
+        if(index>=words.length){ timeoutId=null; return; }
+        showWord(index);
+        const delay=getWordDelay(words[index]);
+        index++;
+        timeoutId=setTimeout(showNextWord,delay);
+      }
+      showNextWord();
+    }
+
+    function pauseReading(){ clearTimeout(timeoutId); timeoutId=null; }
+
+    function restartSentence(){
+      pauseReading();
+      for(let i=index-1;i>=0;i--){
+        if(/[.!?]/.test(words[i])){ index=i+1; break; }
+        if(i===0) index=0;
+      }
+      showWord(index,false);
+    }
+
+    function forwardSentence(){
+      pauseReading();
+      for(let i=index;i<words.length;i++){
+        if(/[.!?]/.test(words[i])){ index=i+1; break; }
+      }
+      if(index>=words.length) index=words.length-1;
+      showWord(index,false);
+    }
+
+    function prevWordManual(){ pauseReading(); if(index>0) index--; showWord(index,false); }
+    function nextWordManual(){ pauseReading(); if(index<words.length-1) index++; showWord(index,false); }
+
+    function setProfileColors(profile){
+      switch(profile){
+        case 'dyslexia':
+          document.documentElement.style.setProperty('--bg-color','#FFFFCC');
+          document.documentElement.style.setProperty('--text-color','#000000');
+          document.documentElement.style.setProperty('--reader-bg','#FFF8B0');
+          document.documentElement.style.setProperty('--highlight-color','#FF8C42');
+          document.documentElement.style.setProperty('--context-color','rgba(0,0,0,0.1)');
+          break;
+        case 'standard':
+          document.documentElement.style.setProperty('--bg-color','#FFF8E7');
+          document.documentElement.style.setProperty('--text-color','#333333');
+          document.documentElement.style.setProperty('--reader-bg','#FFEBD6');
+          document.documentElement.style.setProperty('--highlight-color','#FF8C42');
+          document.documentElement.style.setProperty('--context-color','rgba(0,0,0,0.1)');
+          break;
+        case 'speed':
+          document.documentElement.style.setProperty('--bg-color','#FFFFFF');
+          document.documentElement.style.setProperty('--text-color','#111111');
+          document.documentElement.style.setProperty('--reader-bg','#F0F0F0');
+          document.documentElement.style.setProperty('--highlight-color','#0077CC');
+          document.documentElement.style.setProperty('--context-color','rgba(0,0,0,0.1)');
+          break;
+      }
+    }
+
+    profileSelect.addEventListener('change',()=>{
+      const profile=profileSelect.value;
+      setProfileColors(profile);
+      switch(profile){
+        case 'dyslexia': speedInput.value=120; reader.style.fontSize='48px'; break;
+        case 'standard': speedInput.value=250; reader.style.fontSize='44px'; break;
+        case 'speed': speedInput.value=450; reader.style.fontSize='36px'; break;
+      }
+      speedValue.textContent=speedInput.value;
+    });
+
+    nightModeBtn.addEventListener('click',()=>{
+      nightActive=!nightActive;
+      if(nightActive){
+        document.documentElement.style.setProperty('--bg-color','#1E1E1E');
+        document.documentElement.style.setProperty('--text-color','#EAEAEA');
+        document.documentElement.style.setProperty('--reader-bg','#333333');
+        document.documentElement.style.setProperty('--highlight-color','#FFA75D');
+        document.documentElement.style.setProperty('--context-color','rgba(255,255,255,0.15)');
+      } else { setProfileColors(profileSelect.value); }
+    });
+
+    ambientBtn.addEventListener('click',()=>{
+      ambientPlaying=!ambientPlaying; ambientBtn.classList.toggle('active', ambientPlaying);
+      try{ if(ambientPlaying) ambientAudio.play(); else ambientAudio.pause(); }catch(e){}
+    });
+
+    orpBtn.addEventListener('click',()=>{ orpActive=!orpActive; orpBtn.classList.toggle('active', orpActive); });
+
+    startBtn.addEventListener('click',startReading);
+    pauseBtn.addEventListener('click',pauseReading);
+    restartSentenceBtn.addEventListener('click',restartSentence);
+    forwardSentenceBtn.addEventListener('click',forwardSentence);
+    prevWordBtn.addEventListener('click',prevWordManual);
+    nextWordBtn.addEventListener('click',nextWordManual);
+
+    setProfileColors(profileSelect.value);
+  </script>
+
+</body>
+</html>
